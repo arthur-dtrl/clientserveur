@@ -5,4 +5,4 @@
 int MoniteurClient(int msqid);
 int ConnexionClient();
 void DeconnexionClient(int msqid);
-void handleSignal(int sig);
+void newvalue(int signo);

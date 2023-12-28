@@ -1,49 +1,9 @@
 #include "CL_include"
 #include "CL_monitor.h"
 
-
-
 key_t buf_key;  /* Clé du buffer */
 key_t sem_buf_key;
-#define SEM_KEY 0x1234
-
-int MoniteurClient(int msqid){
-	pid_t pid_lecteur, pid_redacteur;
-	if (msqid < 0) {
-        perror("Erreur de connexion au serveur\n");
-        exit(EXIT_FAILURE);
-    }
-    
-	for (int voie = 0; voie < NVOIES; voie++) {
-        pid_lecteur = fork();
-        if (pid_lecteur == 0) {
-            printf("Création lecteur pour voie %d \n",voie+1);
-            // Processus Lecteurs
-            lireDonnees(voie,sem_buf_key,buf_key);
-            exit(0);
-            
-        }
-    /*
-        pid_redacteur = fork();
-        if (pid_redacteur == 0) {
-            printf("Création rédacteur pour voie %d \n",voie+1);
-            // Processus Redacteur
-            //ecrireDonnees(voie);
-            exit(0);
-        }
-    */
-    }
-
-    // Attente de la fin des processus enfants
-    while (wait(NULL) > 0);
-
-    // Nettoyage des sémaphores
-
-
-    // Déconnexion du client
-
-    return 0;
-}
+pid_t lecteurs[2];
 
 int ConnexionClient(){
     int msqid; /*id de la messagerie*/
@@ -105,39 +65,78 @@ void DeconnexionClient(int msqid){
     }
 }
 
-int P(int semid, int voie)
-{
-  struct sembuf semoper;
-  semoper.sem_num = voie;
-  semoper.sem_op = -1;
-  semoper.sem_flg = 0;
-  
-  if (semop(semid, &semoper, 1) < 0)
-    {
-      perror("Erreur P sur le Mutex");
-      return SEMerr;
+
+void newvalue(int signo)
+{   if(signo==SIGUSR1){
+		printf("yo");
+        kill(lecteurs[0],SIGUSR1);
     }
-  
-  return 0;
+	else{
+        printf("yo2");
+        kill(lecteurs[1],SIGUSR2);
+    }
 }
 
-/*********************	Op�ration V
- *  ENTREE: semid = identificateur de la famille de semaphores
- *  SORTIE: neant
- *  RETOUR: 0 ou SEMerr
- */
-int V(int semid, int voie)
-{
-  struct sembuf semoper;
-  semoper.sem_num = voie;
-  semoper.sem_op = 1;
-  semoper.sem_flg = 0;
-  
-  if (semop(semid, &semoper, 1) < 0)
-    {
-      perror("Erreur V sur le Mutex");
-      return SEMerr;
+
+int main(int argc, char *argv[])
+{	
+	pid_t pid_lecteur, pid_redacteur,pid_driver;
+    
+	int msqid=ConnexionClient();
+    signal(SIGUSR1,&newvalue);
+    signal(SIGUSR2,&newvalue);
+	if (msqid < 0) {
+        perror("Erreur de connexion au serveur\n");
+        exit(EXIT_FAILURE);
     }
-  
-  return 0;
-}
+    pid_driver=fork();
+    if(pid_driver==0){
+        Driver();
+    }
+	for (int voie = 0; voie < NVOIES; voie++) {
+        pid_redacteur = fork();
+        if (pid_redacteur == 0) {
+            printf("Création rédacteur pour voie %d \n",voie+1);
+            // Processus Redacteur
+            recupereDonnees(voie);
+            exit(0);
+        }
+        pid_lecteur = fork();
+        lecteurs[voie]=pid_lecteur;
+        if (pid_lecteur == 0) {
+            printf("Création lecteur pour voie %d \n",voie+1);
+            // Processus Lecteurs
+            lireDonnees(voie,sem_buf_key,buf_key,pid_redacteur);
+            exit(0);
+        }
+    
+        
+    
+    }
+
+    // Attente de la fin des processus enfants
+    while (wait(NULL) > 0);
+
+    // Nettoyage des sémaphores
+
+
+    // Déconnexion du client
+
+    return 0;
+
+	
+	/*printf("\n* * * * * * * * * * * * * * * * * * * * * * * * *\n");
+	printf("Projet CLIENT - SERVEUR\tTemps R�el SEOC \n");
+	printf("* * * * * * * * * * * * * * * * * * * * * * * * *\n");*/
+	
+	DeconnexionClient(msqid);
+
+        /* TO BE CONTINUED */
+        
+
+return 0;
+}	   	   
+
+	   	   	   
+
+
