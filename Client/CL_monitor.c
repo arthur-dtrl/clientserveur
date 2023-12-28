@@ -1,20 +1,20 @@
 #include "CL_include"
 #include "CL_monitor.h"
+#include "CL_writer.h"
 
 key_t buf_key;  /* Clé du buffer */
 key_t sem_buf_key;
 pid_t lecteurs[2];
 
+
 int ConnexionClient(){
     int msqid; /*id de la messagerie*/
     long PID;   /* PID du client */
     key_t server_key;
-    dmsgbuf CONNECT_msg ={CONNECT,NULL}; /* message de connexion */
-    dmsgbuf pid_msg; /*message recu depuis le serveur */
-    dmsgbuf ACK_msg={ACK,NULL}; /*message d'acquisition */
+    dmsgbuf msg ={CONNECT,NULL}; /* message de connexion */
 
     printf("\nTentative de connexion...\n");
-    sprintf(CONNECT_msg.txt,"%d",getpid());
+    sprintf(msg.txt,"%d",getpid());
     server_key = ftok(CleServeur,'M');
     sem_buf_key=ftok(CleServeur,'S');
     if (server_key == -1) {
@@ -28,24 +28,24 @@ int ConnexionClient(){
         return -1;
     }
 
-    if (msgsnd(msqid, &CONNECT_msg, sizeof(CONNECT_msg.txt), 0) == -1) {
+    if (msgsnd(msqid, &msg, sizeof(msg.txt), 0) == -1) {
         perror("Erreur msgsnd");
         return -1;
     }
 
-    if (msgrcv(msqid, &pid_msg, sizeof(pid_msg.txt), PID, 0) == -1) {
+    if (msgrcv(msqid, &msg, sizeof(msg.txt), PID, 0) == -1) {
         perror("Erreur msgrcv");
         return -1;
     }
 
-    printf("Message reçu du serveur : %s\n", pid_msg.txt);
-    buf_key=ftok(pid_msg.txt,'T');
+    printf("Message reçu du serveur : %s\n", msg.txt);
+    buf_key=ftok(msg.txt,'T');
     
     printf("Envoi de l'ACK...\n");
 
-    sprintf(ACK_msg.txt,"%d",getpid());
-    ACK_msg.type = ACK;
-    if (msgsnd(msqid, &ACK_msg, sizeof(ACK_msg.txt), 0) == -1) {
+    sprintf(msg.txt,"%d",getpid());
+    msg.type = ACK;
+    if (msgsnd(msqid, &msg, sizeof(msg.txt), 0) == -1) {
         perror("Erreur lors de l'envoi du message ACK");
         return -1;
     }
@@ -54,7 +54,7 @@ int ConnexionClient(){
 }
 
 void DeconnexionClient(int msqid){
-    dmsgbuf DECONNECT_msg={DECONNECT,NULL};
+    dmsgbuf DECONNECT_msg={DECONNECT,(char)NULL};
 
     sprintf(DECONNECT_msg.txt,"%d",getpid());
     DECONNECT_msg.type = DECONNECT;
@@ -89,28 +89,29 @@ int main(int argc, char *argv[])
         perror("Erreur de connexion au serveur\n");
         exit(EXIT_FAILURE);
     }
-    pid_driver=fork();
-    if(pid_driver==0){
+    pid_driver = fork();
+    if (pid_driver == 0) {
+        printf("Création driver");
         Driver();
-    }
-	for (int voie = 0; voie < NVOIES; voie++) {
-        pid_redacteur = fork();
-        if (pid_redacteur == 0) {
-            printf("Création rédacteur pour voie %d \n",voie+1);
-            // Processus Redacteur
-            recupereDonnees(voie);
-            exit(0);
+        exit(0);
         }
+	for (int voie = 0; voie < NVOIES; voie++) {
         pid_lecteur = fork();
         lecteurs[voie]=pid_lecteur;
         if (pid_lecteur == 0) {
             printf("Création lecteur pour voie %d \n",voie+1);
             // Processus Lecteurs
-            lireDonnees(voie,sem_buf_key,buf_key,pid_redacteur);
+            lireDonnees(voie,sem_buf_key,buf_key);
             exit(0);
         }
     
-        
+        pid_redacteur = fork();
+        if (pid_redacteur == 0) {
+            printf("Création rédacteur pour voie %d \n",voie+1);
+            // Processus Redacteur
+            RecupereDonnees(voie,pid_driver);
+            exit(0);
+        }
     
     }
 
