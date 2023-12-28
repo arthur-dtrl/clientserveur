@@ -3,6 +3,10 @@
 *---------------------------------------------*
 *	Definitions du client				*
 *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+#ifndef CL_DEF_H
+#define CL_DEF_H
+
+#include "CL_include"
 
 #define CleServeur "/tmp/CleSrv"
 
@@ -39,3 +43,4 @@ typedef struct {
    int tampon[BUF_SZ];
 }BUF;
 
+#endif 

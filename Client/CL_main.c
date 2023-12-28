@@ -2,27 +2,29 @@
 *	Module CL_main.c				*
 *-------------------------------------------------------*
 */
-#include "CL_connect.h"
-
+#include "CL_monitor.h"
 #include "CL_include"
 
-
-void litbuf1();
-void litbuf2();
+void newvalue_1(int signo);
+void newvalue_2(int signo);
 
 int voie;			/*variable globale (numero du canal a lire)*/
 
 int main(int argc, char *argv[])
-{	int msqid;
-	msqid=ConnexionClient();
+{	
+	
+	int msqid=ConnexionClient();
+	signal(SIGUSR1, &newvalue_1);
+	signal(SIGUSR2, &newvalue_2);
+	if(MoniteurClient(msqid)!=0){
+		printf("Erreur");
+	};
 	
 
-	signal(SIGUSR1, litbuf1);
-	signal(SIGUSR2, litbuf2);
-
-	printf("\n* * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Projet CLIENT - SERVEUR\tTemps R�el E2i - Novembre\n");
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * *\n");
+	
+	/*printf("\n* * * * * * * * * * * * * * * * * * * * * * * * *\n");
+	printf("Projet CLIENT - SERVEUR\tTemps R�el SEOC \n");
+	printf("* * * * * * * * * * * * * * * * * * * * * * * * *\n");*/
 	
 	DeconnexionClient(msqid);
 
@@ -35,17 +37,20 @@ return 0;
 	   	   	   
 /*/////////////////////////////////////////////////////////////////////////*/
 	   
-void litbuf1() /* semaphore 0 */
-{
-	voie=0;
-	signal(SIGUSR1,litbuf1);
+void newvalue_1(int signo) /* semaphore 0 */
+{	if(signo==SIGUSR1){
+		printf("yo");
+	}
 }
 
 
 /*/////////////////////////////////////////////////////////////////////////*/
 
-void litbuf2()
+void newvalue_2(int signo)
 {
-	voie=1;	
-	signal(SIGUSR2,litbuf2);
+	if(signo==SIGUSR2){
+		
+		printf("yo");
+	}
 }
+
