@@ -9,12 +9,12 @@ void Driver(){
 void signal_handler(int signo){
     if(signo==SIGUSR1){
         for(int i =0;i<5;i++){
-            printf("%d",donnees1[i]);
+            printf("%d",data1[i]);
         }
     }
     else{
         for(int i =0;i<5;i++){
-            printf("%d",donnees2[i]);
+            printf("%d",data2[i]);
         }
     }
 }

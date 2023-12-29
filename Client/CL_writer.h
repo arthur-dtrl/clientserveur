@@ -1,6 +1,7 @@
 
-extern int donnees1[];
-extern int donnees2[];
-extern int cpt1;
-extern int cpt2;
+extern int data1[];
+extern int data2[];
+extern int cpt;
+
 void RecupereDonnees(int voie,int pid_driver);
+void increment(int signo);

@@ -96,15 +96,6 @@ int main(int argc, char *argv[])
         exit(0);
         }
 	for (int voie = 0; voie < NVOIES; voie++) {
-        pid_lecteur = fork();
-        lecteurs[voie]=pid_lecteur;
-        if (pid_lecteur == 0) {
-            printf("Création lecteur pour voie %d \n",voie+1);
-            // Processus Lecteurs
-            lireDonnees(voie,sem_buf_key,buf_key);
-            exit(0);
-        }
-    
         pid_redacteur = fork();
         if (pid_redacteur == 0) {
             printf("Création rédacteur pour voie %d \n",voie+1);
@@ -112,7 +103,14 @@ int main(int argc, char *argv[])
             RecupereDonnees(voie,pid_driver);
             exit(0);
         }
-    
+        pid_lecteur = fork();
+        lecteurs[voie]=pid_lecteur;
+        if (pid_lecteur == 0) {
+            printf("Création lecteur pour voie %d \n",voie+1);
+            // Processus Lecteurs
+            lireDonnees(voie,sem_buf_key,buf_key,pid_redacteur);
+            exit(0);
+        }
     }
 
     // Attente de la fin des processus enfants
